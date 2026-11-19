@@ -12,10 +12,13 @@ With the default schedule (arrive 09:00, leave 16:00):
 
 | Time | Shows |
 |---|---|
-| until 10:00 | trip to work, live departures |
+| until 07:15 | today's trip to work, arriving by 09:00 |
+| 07:15–10:00 | trip to work, live departures |
 | 10:00–15:15 | trip home, planned around 16:00 ("Show departures now" switches to live) |
 | 15:15–20:00 | trip home, live departures |
 | after 20:00 | tomorrow's trip to work, arriving by 09:00 |
+
+For each connection the app works out the minutes you are outside (walks and waits at stops) and the chance of rain during exactly those minutes, from the 11 members of the MeteoSwiss ICON-CH1 ensemble. Below 20% it says no umbrella, from 50% take an umbrella. It also shows temperature and feels-like at both ends.
 
 The highlighted connection is the earliest door-to-door arrival you can still catch. Cancelled connections are never highlighted; connections with a transfer at risk count 5 minutes later. Tue/Thu are labelled as commute days, but the app works the same every day. Tap the direction button to switch manually.
 
@@ -62,9 +65,10 @@ internal/config          YAML config and defaults
 internal/transit         search.ch client and normaliser (door-to-door, delays, cancellations)
 internal/engine          direction rules and hero selection
 internal/store           response cache and persisted daily request budget
+internal/weather         Open-Meteo client, rain chance for the minutes outside
 internal/api             HTTP handlers, static PWA
 web/                     Svelte PWA (built into web/dist and embedded)
-testdata/                recorded search.ch responses for tests
+testdata/                recorded search.ch and Open-Meteo responses for tests
 ```
 
 ## Roadmap
