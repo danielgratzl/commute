@@ -1,0 +1,23 @@
+# Copy to config.yaml and fill in your own places. config.yaml is git-ignored.
+timezone: Europe/Zurich
+buffer_min: 2                 # minutes for shoes and door, subtracted from "leave at"
+
+places:                       # use exact coordinates, e.g. from map.geo.admin.ch
+  home: { label: "Home", lat: 47.37800, lon: 8.54020 }
+  work: { label: "Work", lat: 47.40825, lon: 8.50673 }
+
+schedule:
+  arrive_work: "09:00"        # usual arrival at work
+  leave_work: "16:00"         # usual departure from work
+  switch_home_after_min: 60   # show the trip home from arrive_work + 60 min
+  live_before_leave_min: 45   # before leave_work - 45 min, show planned trips around leave_work
+  evening_switch: "20:00"     # afterwards, show tomorrow's trip to work
+  commute_days: [tue, thu]    # only a label; the app shows trips every day
+
+transit:
+  provider: searchch
+  num: 6                      # connections per request
+  daily_route_budget: 800     # search.ch allows ~1000 route searches/day
+  live_ttl_seconds: 120
+  planned_ttl_seconds: 900
+  walk_overrides: {}          # minutes by stop id, e.g. "8503000": { to_stop: 4, from_stop: 5 }

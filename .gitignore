@@ -1,0 +1,8 @@
+config.yaml
+.env
+data/
+web/node_modules/
+web/dist/*
+!web/dist/.gitkeep
+/commute
+.DS_Store

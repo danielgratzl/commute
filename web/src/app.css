@@ -1,0 +1,114 @@
+:root {
+  --bg: #f2f4f7;
+  --card: #ffffff;
+  --card2: #f6f7f9;
+  --ink: #0f1720;
+  --muted: #5b6573;
+  --faint: #8d96a3;
+  --line: #e2e6ec;
+  --accent: #1f5fd1;
+  --accent-ink: #ffffff;
+  --go: #0f8f52;
+  --go-soft: #e2f4ea;
+  --warn: #c2410c;
+  --warn-soft: #fff0e5;
+  --late: #c8285e;
+  --late-soft: #fde8ef;
+  --m-walk: #9aa3af;
+  --m-bus: #7451e8;
+  --m-train: #1f5fd1;
+  --m-tram: #0c968a;
+  --m-other: #6b7280;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.07);
+  --r: 22px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c1016;
+    --card: #151a22;
+    --card2: #1b212b;
+    --ink: #eef2f7;
+    --muted: #9aa6b6;
+    --faint: #6c7889;
+    --line: #262e3a;
+    --accent: #6b9bff;
+    --accent-ink: #0c1016;
+    --go: #3cc77f;
+    --go-soft: #12301f;
+    --warn: #ff9a5c;
+    --warn-soft: #3a2214;
+    --late: #ff6b9a;
+    --late-soft: #3a1622;
+    --m-walk: #6c7889;
+    --m-bus: #9b82ff;
+    --m-train: #5b8fff;
+    --m-tram: #2cc6b2;
+    --m-other: #8c95a3;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+  min-height: 100dvh;
+}
+button {
+  font: inherit;
+  color: inherit;
+}
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+svg.i {
+  flex: none;
+  display: block;
+}
+.badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 7px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.badge.bus { background: var(--m-bus); }
+.badge.train { background: var(--m-train); }
+.badge.tram { background: var(--m-tram); }
+.badge.ship, .badge.cable, .badge.other { background: var(--m-other); }
+.badge.cancelled { background: var(--faint); text-decoration: line-through; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.chip.ok { background: var(--go-soft); color: var(--go); }
+.chip.late { background: var(--late-soft); color: var(--late); }
+.chip.risk { background: var(--warn-soft); color: var(--warn); }
+.chip.plain { background: var(--card2); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

@@ -1,0 +1,18 @@
+services:
+  commute:
+    build: .                               # later: image: ghcr.io/<you>/commute:latest
+    image: commute:local
+    container_name: commute
+    restart: unless-stopped
+    ports:
+      - "8080:8080"                        # LAN only; do not forward this port on your router
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+      - commute-data:/data                 # daily API budget (and later caches)
+    read_only: true
+    mem_limit: 128m
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  commute-data:
