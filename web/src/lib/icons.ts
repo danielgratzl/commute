@@ -12,6 +12,11 @@ const paths: Record<string, string> = {
   chev: '<path d="M6 9l6 6 6-6"/>',
   home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
   work: '<rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/>',
+  umbrella: '<path d="M3 12a9 9 0 0118 0z"/><path d="M12 12v6.5a2 2 0 01-4 0"/>',
+  cloud: '<path d="M7 18a4 4 0 01-.4-8 5.5 5.5 0 0110.6 1.6A3.3 3.3 0 0117 18z"/>',
+  rain: '<path d="M7 14.5a4 4 0 01-.4-8 5.5 5.5 0 0110.6 1.6 3.3 3.3 0 01-.2 6.4z"/><path d="M8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/>',
+  snow: '<path d="M7 14.5a4 4 0 01-.4-8 5.5 5.5 0 0110.6 1.6 3.3 3.3 0 01-.2 6.4z"/><path d="M8 18.5h.01M12 20h.01M16 18.5h.01M10 21.5h.01M14 21.5h.01"/>',
+  drop: '<path d="M12 3.5s-6 6.6-6 10.6a6 6 0 0012 0c0-4-6-10.6-6-10.6z"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.2"/>',
 }
 

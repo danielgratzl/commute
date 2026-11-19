@@ -35,7 +35,43 @@ export interface Connection {
   has_realtime: boolean
   disruptions?: string[]
   legs: Leg[]
-  weather: null
+  weather: TripWeather | null
+}
+
+export interface PointWeather {
+  place: 'origin' | 'destination'
+  at: string
+  temp: number
+  feels: number
+  rate_mm_h: number
+  chance: number
+  snow?: boolean
+}
+
+export interface OutdoorInterval {
+  kind: 'walk' | 'wait'
+  leg: number
+  start: string
+  end: string
+  place: 'origin' | 'destination'
+  chance: number
+  rate_mm_h: number
+}
+
+export interface TripWeather {
+  origin: PointWeather
+  destination: PointWeather
+  outdoor_min: number
+  chance: number
+  rate_mm_h: number
+  intensity: 'none' | 'light' | 'moderate' | 'heavy'
+  verdict: 'dry' | 'maybe' | 'wet'
+  headline: string
+  detail: string
+  snow?: boolean
+  ice?: boolean
+  intervals: OutdoorInterval[]
+  source: string
 }
 
 export interface Plan {
@@ -61,4 +97,5 @@ export interface LiveResponse {
   stale: boolean
   warning?: string
   budget: { used: number; limit: number }
+  weather: { status: 'ok' | 'stale' | 'unavailable'; source?: string; fetched?: string; error?: string }
 }

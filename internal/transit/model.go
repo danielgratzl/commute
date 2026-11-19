@@ -48,8 +48,44 @@ type Leg struct {
 	ToLon        float64   `json:"to_lon,omitempty"`
 }
 
-// TripWeather is filled in by the weather phase; nil until then.
-type TripWeather struct{}
+// PointWeather is the weather at one end of the trip at the time you are there.
+type PointWeather struct {
+	Place   string    `json:"place"` // "origin" | "destination"
+	At      time.Time `json:"at"`
+	Temp    float64   `json:"temp"`
+	Feels   float64   `json:"feels"`
+	RateMMH float64   `json:"rate_mm_h"` // deterministic model, hourly resolution
+	Chance  int       `json:"chance"`    // % chance of rain in that hour
+	Snow    bool      `json:"snow,omitempty"`
+}
+
+// OutdoorInterval is a stretch of the trip spent outside: a walk or a wait at a stop.
+type OutdoorInterval struct {
+	Kind    string    `json:"kind"` // "walk" | "wait"
+	Leg     int       `json:"leg"`  // walk: index of the leg; wait: index of the leg before the wait
+	Start   time.Time `json:"start"`
+	End     time.Time `json:"end"`
+	Place   string    `json:"place"`     // "origin" | "destination" (nearest forecast point)
+	Chance  int       `json:"chance"`    // % of ensemble members with rain during this stretch
+	RateMMH float64   `json:"rate_mm_h"` // typical intensity if it rains
+}
+
+// TripWeather summarises rain and temperature for the minutes you are outside.
+type TripWeather struct {
+	Origin     PointWeather      `json:"origin"`
+	Dest       PointWeather      `json:"destination"`
+	OutdoorMin int               `json:"outdoor_min"`
+	Chance     int               `json:"chance"`    // % chance of rain while you are outside
+	RateMMH    float64           `json:"rate_mm_h"` // typical intensity if it rains
+	Intensity  string            `json:"intensity"` // none | light | moderate | heavy
+	Verdict    string            `json:"verdict"`   // dry | maybe | wet
+	Headline   string            `json:"headline"`
+	Detail     string            `json:"detail"`
+	Snow       bool              `json:"snow,omitempty"`
+	Ice        bool              `json:"ice,omitempty"`
+	Intervals  []OutdoorInterval `json:"intervals"`
+	Source     string            `json:"source"`
+}
 
 type Connection struct {
 	ID            string       `json:"id"`

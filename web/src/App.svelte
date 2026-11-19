@@ -127,6 +127,10 @@
       </div>
     {/if}
 
+    {#if data && data.weather.status === 'unavailable'}
+      <div class="banner">{@html icon('warn', 16)}<span>Weather unavailable right now. Connections are still live.</span></div>
+    {/if}
+
     {#if data?.warning}
       <div class="banner">{@html icon('warn', 16)}<span>{data.warning}</span></div>
     {/if}
@@ -165,6 +169,9 @@
   <footer class="foot">
     {#if data}
       Timetable: search.ch, fetched {clock(data.fetched_at)} · {data.budget.used}/{data.budget.limit} requests today<br />
+      {#if data.weather.status !== 'unavailable'}
+        Weather: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), source MeteoSwiss{#if data.weather.fetched}, fetched {clock(data.weather.fetched)}{/if}<br />
+      {/if}
       Times include walking from and to the door{#if loading} · refreshing…{/if}
     {/if}
   </footer>
@@ -194,5 +201,6 @@
   .sec-h { display: flex; align-items: baseline; justify-content: space-between; margin: 22px 4px 10px; }
   .sec-h h2 { margin: 0; font-size: 17px; font-weight: 750; }
   .sec-h span { font-size: 12px; color: var(--muted); }
+  .foot a { color: inherit; }
   .foot { margin-top: 22px; text-align: center; font-size: 12px; color: var(--faint); line-height: 1.6; }
 </style>

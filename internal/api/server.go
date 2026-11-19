@@ -15,11 +15,13 @@ import (
 	"commute/internal/engine"
 	"commute/internal/store"
 	"commute/internal/transit"
+	"commute/internal/weather"
 )
 
 type Server struct {
 	Cfg     *config.Config
 	Transit *transit.SearchCh
+	Weather *weather.Client
 	Cache   *store.Cache
 	Budget  *store.Budget
 	Web     fs.FS // built PWA (may be empty)
@@ -44,6 +46,14 @@ type LiveResponse struct {
 	Stale       bool                 `json:"stale"`
 	Warning     string               `json:"warning,omitempty"`
 	Budget      budgetInfo           `json:"budget"`
+	WeatherInfo weatherInfo          `json:"weather"`
+}
+
+type weatherInfo struct {
+	Status  string    `json:"status"` // ok | stale | unavailable
+	Source  string    `json:"source,omitempty"`
+	Fetched time.Time `json:"fetched,omitzero"`
+	Error   string    `json:"error,omitempty"`
 }
 
 func (s *Server) Handler() http.Handler {
@@ -104,12 +114,24 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 	}
 	hero, list := engine.Pick(now, plan, cs)
 
+	wx, wxInfo := s.weatherData(r.Context(), now)
+	if wx != nil {
+		origin, dest := 0, 1
+		if plan.Direction == engine.ToHome {
+			origin, dest = 1, 0
+		}
+		for i := range list {
+			list[i].Weather = weather.Assess(list[i], wx, origin, dest)
+		}
+	}
+
 	used, limit := s.Budget.Snapshot(now)
 	resp := LiveResponse{
 		Now: now, Plan: plan, From: from.Label, To: to.Label,
 		HeroID: hero, Connections: list,
 		Source: "search.ch", FetchedAt: res.Fetched, Stale: res.Stale,
-		Budget: budgetInfo{Used: used, Limit: limit},
+		Budget:      budgetInfo{Used: used, Limit: limit},
+		WeatherInfo: wxInfo,
 	}
 	if list == nil {
 		resp.Connections = []transit.Connection{}
@@ -121,6 +143,61 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// weatherData returns the parsed forecast for home and work. Forecast and ensemble are
+// cached separately; the ensemble is optional, the forecast is required.
+func (s *Server) weatherData(ctx context.Context, now time.Time) (*weather.Data, weatherInfo) {
+	if s.Weather == nil {
+		return nil, weatherInfo{Status: "unavailable", Error: "weather disabled"}
+	}
+	pts := []weather.Coord{
+		{Lat: s.Cfg.Places.Home.Lat, Lon: s.Cfg.Places.Home.Lon},
+		{Lat: s.Cfg.Places.Work.Lat, Lon: s.Cfg.Places.Work.Lon},
+	}
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
+	type out struct {
+		res store.Result
+		err error
+	}
+	fc, ens := make(chan out, 1), make(chan out, 1)
+	go func() {
+		r, err := s.Cache.Get("wx|forecast", 30*time.Minute, now, func() ([]byte, error) {
+			s.Log.Info("open-meteo forecast request")
+			return s.Weather.FetchForecast(ctx, pts)
+		})
+		fc <- out{r, err}
+	}()
+	go func() {
+		r, err := s.Cache.Get("wx|ensemble", 60*time.Minute, now, func() ([]byte, error) {
+			s.Log.Info("open-meteo ensemble request")
+			return s.Weather.FetchEnsemble(ctx, pts)
+		})
+		ens <- out{r, err}
+	}()
+	f, e := <-fc, <-ens
+	if f.err != nil {
+		s.Log.Error("weather fetch failed", "err", f.err)
+		return nil, weatherInfo{Status: "unavailable", Error: f.err.Error()}
+	}
+	var ensBody []byte
+	if e.err == nil {
+		ensBody = e.res.Body
+	} else {
+		s.Log.Warn("ensemble unavailable, using deterministic forecast", "err", e.err)
+	}
+	d, err := weather.Attach(f.res.Body, ensBody, pts)
+	if err != nil {
+		s.Log.Error("weather parse failed", "err", err)
+		return nil, weatherInfo{Status: "unavailable", Error: err.Error()}
+	}
+	info := weatherInfo{Status: "ok", Source: d.Source, Fetched: f.res.Fetched}
+	if f.res.Stale || e.res.Stale {
+		info.Status = "stale"
+	}
+	return d, info
 }
 
 // static serves the embedded PWA with an index.html fallback for client routes.

@@ -18,6 +18,7 @@ import (
 	"commute/internal/config"
 	"commute/internal/store"
 	"commute/internal/transit"
+	"commute/internal/weather"
 	"commute/web"
 )
 
@@ -43,6 +44,7 @@ func main() {
 	srv := &api.Server{
 		Cfg:     &cfg,
 		Transit: transit.NewSearchCh(),
+		Weather: weather.NewClient(),
 		Cache:   store.NewCache(),
 		Budget:  store.NewBudget(cfg.DataDir, cfg.Transit.DailyRouteBudget),
 		Web:     web.FS(),

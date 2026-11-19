@@ -14,6 +14,11 @@
   --warn-soft: #fff0e5;
   --late: #c8285e;
   --late-soft: #fde8ef;
+  --rain: #2f6fed;
+  --rain-soft: #e7efff;
+  --rain-ink: #1d3f8f;
+  --maybe: #a16207;
+  --maybe-soft: #fdf3dc;
   --m-walk: #9aa3af;
   --m-bus: #7451e8;
   --m-train: #1f5fd1;
@@ -40,6 +45,11 @@
     --warn-soft: #3a2214;
     --late: #ff6b9a;
     --late-soft: #3a1622;
+    --rain: #6f9bff;
+    --rain-soft: #16233f;
+    --rain-ink: #bcd0ff;
+    --maybe: #f2b544;
+    --maybe-soft: #33270f;
     --m-walk: #6c7889;
     --m-bus: #9b82ff;
     --m-train: #5b8fff;
@@ -108,6 +118,8 @@ svg.i {
 .chip.ok { background: var(--go-soft); color: var(--go); }
 .chip.late { background: var(--late-soft); color: var(--late); }
 .chip.risk { background: var(--warn-soft); color: var(--warn); }
+.chip.rain { background: var(--rain-soft); color: var(--rain-ink); }
+.chip.maybe { background: var(--maybe-soft); color: var(--maybe); }
 .chip.plain { background: var(--card2); color: var(--muted); }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

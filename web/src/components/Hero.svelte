@@ -3,6 +3,7 @@
   import { clock, inWords, mmss, ms } from '../lib/time'
   import { icon } from '../lib/icons'
   import LegBar from './LegBar.svelte'
+  import WeatherTile from './WeatherTile.svelte'
 
   let {
     c,
@@ -23,6 +24,13 @@
 
   const lineLabel = (l: Leg) =>
     l.mode === 'bus' ? `Bus ${l.line}` : l.mode === 'tram' ? `Tram ${l.line}` : (l.line ?? '')
+  const wx = $derived(c.weather)
+  const walkWx = (i: number) => wx?.intervals.find((iv) => iv.kind === 'walk' && iv.leg === i)
+  const waitWx = (i: number) => wx?.intervals.find((iv) => iv.kind === 'wait' && iv.leg === i)
+  const ivMin = (iv: { start: string; end: string }) => Math.round((ms(iv.end) - ms(iv.start)) / 60000)
+  const rainTag = (chance: number, rate: number) =>
+    chance < 20 ? 'dry' : `${chance}% rain${rate >= 0.1 ? ` · ${rate.toFixed(1)} mm/h` : ''}`
+  const verdictIcon = $derived(wx?.snow && wx.verdict !== 'dry' ? 'snow' : wx?.verdict === 'dry' ? 'cloud' : 'umbrella')
   const depWithDelay = (l: Leg) => clock(ms(l.depart) + (l.dep_delay && l.dep_delay > 0 ? l.dep_delay * 60000 : 0))
 </script>
 
@@ -68,6 +76,13 @@
     {#if live}<div class="ring"><i style="width:{progress}%"></i></div>{/if}
   </div>
 
+  {#if wx}
+    <div class="verdict v-{wx.verdict}">
+      <div class="vi">{@html icon(verdictIcon, 26)}</div>
+      <div><div class="vt">{wx.headline}</div><div class="vs">{wx.detail}</div></div>
+    </div>
+  {/if}
+
   {#if c.status === 'at_risk' && c.status_note}
     <div class="alert">{@html icon('warn', 16)}<div>{c.status_note}</div></div>
   {/if}
@@ -85,6 +100,13 @@
 
   <div class="bar"><LegBar {c} /></div>
 
+  {#if wx}
+    <div class="tiles">
+      <WeatherTile label={from} icon={plan.direction === 'h2w' ? 'home' : 'work'} p={wx.origin} />
+      <WeatherTile label={to} icon={plan.direction === 'h2w' ? 'work' : 'home'} p={wx.destination} />
+    </div>
+  {/if}
+
   <details class="steps">
     <summary>All {c.legs.length} steps{c.transfers ? ` · ${c.transfers} change${c.transfers > 1 ? 's' : ''}` : ''} {@html icon('chev', 16)}</summary>
     {#each c.legs as l, i}
@@ -97,12 +119,14 @@
         <div class="tx">
           {#if l.mode === 'walk'}
             Walk {l.minutes} min to <b>{l.to}</b>
+            {#if walkWx(i)}{@const iv = walkWx(i)!}<span class="wxtag" class:wet={iv.chance >= 20}>{@html icon(iv.chance >= 20 ? 'drop' : 'cloud', 12)}{rainTag(iv.chance, iv.rate_mm_h)}</span>{/if}
           {:else}
             <b class:strike={l.cancelled}>{lineLabel(l)}</b> → {l.direction}
             {#if l.cancelled}<span class="del"> cancelled</span>{/if}
             <small>
               {l.from}{#if l.track} · Pl. <span class:changed={l.track_changed}>{l.track}</span>{/if} → {l.to} · arr {clock(ms(l.arrive) + (l.arr_delay ?? 0) * 60000)}
             </small>
+            {#if waitWx(i)}{@const iv = waitWx(i)!}<span class="wxtag" class:wet={iv.chance >= 20}>{@html icon(iv.chance >= 20 ? 'drop' : 'cloud', 12)}then wait {ivMin(iv)} min at the stop · {rainTag(iv.chance, iv.rate_mm_h)}</span>{/if}
           {/if}
         </div>
       </div>
@@ -168,6 +192,20 @@
   .tx small { display: block; color: var(--muted); font-size: 12px; }
   .strike { text-decoration: line-through; }
   .changed { color: var(--late); font-weight: 700; }
+  .verdict { margin: 12px 14px 0; border-radius: 18px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; }
+  .vi { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; flex: none; color: #fff; }
+  .vt { font-size: 18px; font-weight: 750; line-height: 1.15; }
+  .vs { font-size: 13px; margin-top: 2px; line-height: 1.3; opacity: 0.9; }
+  .v-wet { background: var(--rain-soft); color: var(--rain-ink); }
+  .v-wet .vi { background: var(--rain); }
+  .v-maybe { background: var(--maybe-soft); color: var(--ink); }
+  .v-maybe .vi { background: var(--maybe); }
+  .v-dry { background: var(--go-soft); color: var(--ink); }
+  .v-dry .vi { background: var(--go); }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 14px 0; }
+  .wxtag { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: var(--card2); color: var(--muted); }
+  .wxtag.wet { background: var(--rain-soft); color: var(--rain-ink); }
+  .tx .wxtag { display: flex; width: fit-content; }
   .disr { margin: 6px 6px 0; display: flex; flex-direction: column; gap: 6px; }
   .disr p { margin: 0; display: flex; gap: 8px; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
 </style>

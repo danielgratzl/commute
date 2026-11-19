@@ -30,14 +30,18 @@
   <div class="st">
     {#if cancelled}
       <span class="chip late">Cancelled</span>
-    {:else if c.status === 'at_risk'}
-      <span class="chip risk">At risk</span>
-    {:else if c.delay_min > 0}
-      <span class="chip late">+{c.delay_min}′</span>
-    {:else if c.transfers === 0}
-      <span class="chip plain">direct</span>
     {:else}
-      <span class="chip plain">{c.transfers}×</span>
+      {#if c.weather}
+        <span class="chip {c.weather.verdict === 'wet' ? 'rain' : c.weather.verdict === 'maybe' ? 'maybe' : 'ok'}">
+          {@html icon(c.weather.verdict === 'dry' ? 'cloud' : 'umbrella', 13)}{c.weather.verdict === 'dry' ? 'dry' : c.weather.chance + '%'}
+        </span>
+      {/if}
+      <span class="sub">
+        {#if c.status === 'at_risk'}<b class="risk">at risk</b>
+        {:else if c.delay_min > 0}<b class="late">+{c.delay_min}′</b>
+        {:else if c.weather}{Math.round(c.weather.origin.temp)}°→{Math.round(c.weather.destination.temp)}°
+        {:else}{c.transfers === 0 ? 'direct' : c.transfers + '×'}{/if}
+      </span>
     {/if}
   </div>
 </button>
@@ -55,5 +59,9 @@
   .mid { min-width: 0; }
   .badges { display: flex; gap: 4px; overflow: hidden; }
   .meta { font-size: 12.5px; color: var(--muted); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .sub { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .sub .risk { color: var(--warn); }
+  .sub .late { color: var(--late); }
   .meta b { color: var(--ink); font-weight: 650; }
 </style>

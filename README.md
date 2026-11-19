@@ -1,10 +1,10 @@
 # Commute
 
-A self-hosted phone app (PWA) that shows the next sensible public-transport connection between home and work, door to door, with live delays. Weather and bike comes in later phases.
+A self-hosted phone app (PWA) that shows the next sensible public-transport connection between home and work, door to door, with live delays and the chance of rain for the minutes you are outside. Bike support comes later.
 
 - **Backend:** Go, single binary, serves the API and the embedded PWA.
 - **Frontend:** Svelte 5 + Vite, installable PWA.
-- **Data:** [search.ch timetable API](https://search.ch/timetable/api/help) (no key, ~1000 route searches per day).
+- **Data:** [search.ch timetable API](https://search.ch/timetable/api/help) (no key, ~1000 route searches per day) and [Open-Meteo](https://open-meteo.com/) with the MeteoSwiss ICON-CH models (no key; weather data CC BY 4.0).
 
 ## How the live view decides what to show
 
@@ -70,7 +70,7 @@ testdata/                recorded search.ch responses for tests
 ## Roadmap
 
 1. ~~Skeleton, live transit view~~
-2. Trip weather: Open-Meteo (MeteoSwiss ICON-CH) + ensemble, rain chance during the minutes outdoors
+2. ~~Trip weather: Open-Meteo (MeteoSwiss ICON-CH) + ensemble, rain chance during the minutes outdoors~~
 3. Robustness: delay refresh via departure boards, fallback provider, tomorrow view polish
 4. Road bike: cached BRouter route, "dry if you leave by" scan
 5. CI: GitHub Actions multi-arch image to GHCR
