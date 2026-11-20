@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"commute/internal/bike"
 	"commute/internal/config"
 	"commute/internal/engine"
 	"commute/internal/store"
@@ -22,6 +23,7 @@ type Server struct {
 	Cfg     *config.Config
 	Transit *transit.SearchCh
 	Weather *weather.Client
+	Bikes   *bike.Store // nil disables bike
 	Cache   *store.Cache
 	Budget  *store.Budget
 	Web     fs.FS // built PWA (may be empty)
@@ -47,6 +49,8 @@ type LiveResponse struct {
 	Warning     string               `json:"warning,omitempty"`
 	Budget      budgetInfo           `json:"budget"`
 	WeatherInfo weatherInfo          `json:"weather"`
+	Bike        *bike.View           `json:"bike"`
+	BikeError   string               `json:"bike_error,omitempty"`
 }
 
 type weatherInfo struct {
@@ -114,15 +118,41 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 	}
 	hero, list := engine.Pick(now, plan, cs)
 
-	wx, wxInfo := s.weatherData(r.Context(), now)
-	if wx != nil {
-		origin, dest := 0, 1
-		if plan.Direction == engine.ToHome {
-			origin, dest = 1, 0
+	type routeResult struct {
+		r   *bike.Route
+		err error
+	}
+	routeCh := make(chan routeResult, 1)
+	go func() {
+		if s.Bikes == nil || !s.Cfg.Bike.Enabled {
+			routeCh <- routeResult{}
+			return
 		}
+		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+		defer cancel()
+		rt, err := s.Bikes.Get(ctx, s.Cfg.Bike.Profile, bike.ModelFrom(s.Cfg.Bike), from.Lat, from.Lon, to.Lat, to.Lon, now)
+		routeCh <- routeResult{rt, err}
+	}()
+
+	wx, wxInfo := s.weatherData(r.Context(), now)
+	origin, dest := 0, 1
+	if plan.Direction == engine.ToHome {
+		origin, dest = 1, 0
+	}
+	if wx != nil {
 		for i := range list {
 			list[i].Weather = weather.Assess(list[i], wx, origin, dest)
 		}
+	}
+
+	var bikeView *bike.View
+	bikeErr := ""
+	if rr := <-routeCh; rr.err != nil {
+		s.Log.Warn("bike route unavailable", "err", rr.err)
+		bikeErr = "Bike route unavailable right now"
+	} else if rr.r != nil {
+		base, best := s.bikeBase(now, plan, rr.r)
+		bikeView = bike.Build(rr.r, s.Cfg.Bike, base, best, wx, origin, dest)
 	}
 
 	used, limit := s.Budget.Snapshot(now)
@@ -132,6 +162,8 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 		Source: "search.ch", FetchedAt: res.Fetched, Stale: res.Stale,
 		Budget:      budgetInfo{Used: used, Limit: limit},
 		WeatherInfo: wxInfo,
+		Bike:        bikeView,
+		BikeError:   bikeErr,
 	}
 	if list == nil {
 		resp.Connections = []transit.Connection{}
@@ -145,6 +177,22 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// bikeBase is the suggested bike departure and its position in the 10-step scan:
+// live scans forward from now; arrive-by also looks at earlier departures;
+// planned trips home look around the usual departure.
+func (s *Server) bikeBase(now time.Time, plan engine.Plan, r *bike.Route) (time.Time, int) {
+	switch {
+	case plan.Mode == engine.Live:
+		return now.Truncate(time.Minute).Add(time.Minute), 0
+	case !plan.ArriveBy.IsZero():
+		c := s.Cfg.Bike
+		door := time.Duration(c.HandlingOutMin+c.HandlingInMin)*time.Minute + time.Duration(r.RideS*c.KCal)*time.Second
+		return plan.ArriveBy.Add(-door).Truncate(time.Minute), 6
+	default:
+		return plan.At.Add(15 * time.Minute), 3
+	}
+}
+
 // weatherData returns the parsed forecast for home and work. Forecast and ensemble are
 // cached separately; the ensemble is optional, the forecast is required.
 func (s *Server) weatherData(ctx context.Context, now time.Time) (*weather.Data, weatherInfo) {
@@ -154,6 +202,8 @@ func (s *Server) weatherData(ctx context.Context, now time.Time) (*weather.Data,
 	pts := []weather.Coord{
 		{Lat: s.Cfg.Places.Home.Lat, Lon: s.Cfg.Places.Home.Lon},
 		{Lat: s.Cfg.Places.Work.Lat, Lon: s.Cfg.Places.Work.Lon},
+		// Halfway point, used for the middle of a bike ride.
+		{Lat: (s.Cfg.Places.Home.Lat + s.Cfg.Places.Work.Lat) / 2, Lon: (s.Cfg.Places.Home.Lon + s.Cfg.Places.Work.Lon) / 2},
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()

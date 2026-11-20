@@ -6,6 +6,7 @@
   import { icon } from './lib/icons'
   import Hero from './components/Hero.svelte'
   import Row from './components/Row.svelte'
+  import BikeCard from './components/BikeCard.svelte'
 
   const REFRESH_MS = 60_000
 
@@ -164,6 +165,14 @@
         {/each}
       </div>
     {/if}
+
+    {#if data?.bike}
+      <div class="sec-h"><h2>By bike instead?</h2><span>{data.bike.ride_min} min riding</span></div>
+      <BikeCard b={data.bike} train={best} {live} />
+    {:else if data?.bike_error}
+      <div class="sec-h"><h2>By bike instead?</h2></div>
+      <div class="card empty"><p>{data.bike_error}</p></div>
+    {/if}
   </main>
 
   <footer class="foot">
@@ -172,6 +181,7 @@
       {#if data.weather.status !== 'unavailable'}
         Weather: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0), source MeteoSwiss{#if data.weather.fetched}, fetched {clock(data.weather.fetched)}{/if}<br />
       {/if}
+      Bike route: BRouter, © OpenStreetMap contributors<br />
       Times include walking from and to the door{#if loading} · refreshing…{/if}
     {/if}
   </footer>

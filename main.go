@@ -15,6 +15,7 @@ import (
 	_ "time/tzdata" // distroless images have no zoneinfo
 
 	"commute/internal/api"
+	"commute/internal/bike"
 	"commute/internal/config"
 	"commute/internal/store"
 	"commute/internal/transit"
@@ -45,6 +46,7 @@ func main() {
 		Cfg:     &cfg,
 		Transit: transit.NewSearchCh(),
 		Weather: weather.NewClient(),
+		Bikes:   bike.NewStore(cfg.DataDir),
 		Cache:   store.NewCache(),
 		Budget:  store.NewBudget(cfg.DataDir, cfg.Transit.DailyRouteBudget),
 		Web:     web.FS(),

@@ -21,3 +21,15 @@ transit:
   live_ttl_seconds: 120
   planned_ttl_seconds: 900
   walk_overrides: {}          # minutes by stop id, e.g. "8503000": { to_stop: 4, from_stop: 5 }
+
+bike:
+  enabled: true
+  label: "Road bike"
+  profile: fastbike           # BRouter profile; fastbike sticks to asphalt
+  flat_speed_kmh: 30          # your cruising speed on the flat
+  max_speed_kmh: 45           # descents
+  mass_kg: 85                 # rider + bike
+  handling_out_min: 3         # bike out, helmet on
+  handling_in_min: 3          # lock up, change
+  signal_penalty_s: 10        # average wait per traffic light
+  k_cal: 1.0                  # 1.1 = you are 10% slower than the model

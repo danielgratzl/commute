@@ -83,6 +83,8 @@ type TripWeather struct {
 	Detail     string            `json:"detail"`
 	Snow       bool              `json:"snow,omitempty"`
 	Ice        bool              `json:"ice,omitempty"`
+	GustKmh    float64           `json:"gust_kmh,omitempty"` // peak gust while outside
+	Dark       bool              `json:"dark,omitempty"`     // part of the time outside is before sunrise or after sunset
 	Intervals  []OutdoorInterval `json:"intervals"`
 	Source     string            `json:"source"`
 }

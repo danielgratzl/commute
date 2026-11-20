@@ -49,11 +49,11 @@ export interface PointWeather {
 }
 
 export interface OutdoorInterval {
-  kind: 'walk' | 'wait'
+  kind: 'walk' | 'wait' | 'ride'
   leg: number
   start: string
   end: string
-  place: 'origin' | 'destination'
+  place: 'origin' | 'destination' | 'midway'
   chance: number
   rate_mm_h: number
 }
@@ -72,6 +72,32 @@ export interface TripWeather {
   ice?: boolean
   intervals: OutdoorInterval[]
   source: string
+  gust_kmh?: number
+  dark?: boolean
+}
+
+export interface BikeOption {
+  leave_at: string
+  door_arrive: string
+  verdict: 'ride' | 'gear' | 'train' | 'unsafe' | 'unknown'
+  headline: string
+  weather: TripWeather | null
+}
+
+export interface BikeView {
+  label: string
+  distance_km: number
+  ascent_m: number
+  descent_m: number
+  signals: number
+  ride_min: number
+  door_min: number
+  profile: [number, number][]
+  best: BikeOption
+  best_index: number
+  options: BikeOption[]
+  advice: string
+  warnings?: string[]
 }
 
 export interface Plan {
@@ -98,4 +124,6 @@ export interface LiveResponse {
   warning?: string
   budget: { used: number; limit: number }
   weather: { status: 'ok' | 'stale' | 'unavailable'; source?: string; fetched?: string; error?: string }
+  bike: BikeView | null
+  bike_error?: string
 }

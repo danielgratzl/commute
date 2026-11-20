@@ -1,6 +1,7 @@
 package weather
 
 import (
+	"math"
 	"os"
 	"testing"
 	"time"
@@ -160,5 +161,46 @@ func TestAssessDryAndCoverage(t *testing.T) {
 	}
 	if Assess(trip(time.Date(2026, 11, 23, 7, 0, 0, 0, time.UTC)), d, 0, 1) != nil {
 		t.Error("trip beyond the forecast should have no weather")
+	}
+}
+
+// straight is a ride path from home to work over dur.
+type straight struct{ dur float64 }
+
+func (p straight) At(s float64) (float64, float64) {
+	f := math.Min(1, s/p.dur)
+	return home.Lat + (work.Lat-home.Lat)*f, home.Lon + (work.Lon-home.Lon)*f
+}
+
+func TestAssessRideUsesMidpoint(t *testing.T) {
+	day := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
+	d := synthetic(day, time.Date(2026, 11, 20, 8, 0, 0, 0, time.UTC), 11) // rain at work 07-08 UTC
+	mid := Coord{(home.Lat + work.Lat) / 2, (home.Lon + work.Lon) / 2}
+	d.Points = append(d.Points, d.Points[0]) // dry midpoint
+	d.Coords = append(d.Coords, mid)
+
+	leave := time.Date(2026, 11, 20, 6, 20, 0, 0, time.UTC)
+	ride := 36 * time.Minute
+	w := AssessRide(leave, 3*time.Minute, ride, 3*time.Minute, straight{ride.Seconds()}, d, 0, 1)
+	if w == nil {
+		t.Fatal("nil")
+	}
+	var places []string
+	for _, iv := range w.Intervals {
+		places = append(places, iv.Place)
+		if iv.Kind != "ride" {
+			t.Errorf("kind %s", iv.Kind)
+		}
+	}
+	if len(places) != 3 || places[0] != "origin" || places[1] != "midway" || places[2] != "destination" {
+		t.Errorf("places %v", places)
+	}
+	// Ride 06:23-06:59 UTC, rain only 07-08 UTC.
+	if w.Chance != 0 || w.OutdoorMin != 36 {
+		t.Errorf("early ride: chance %d, outdoor %d", w.Chance, w.OutdoorMin)
+	}
+	late := AssessRide(leave.Add(30*time.Minute), 3*time.Minute, ride, 3*time.Minute, straight{ride.Seconds()}, d, 0, 1)
+	if late.Chance != 100 || late.Intervals[2].Chance != 100 || late.Intervals[0].Chance != 0 {
+		t.Errorf("late ride: chance %d, intervals %+v", late.Chance, late.Intervals)
 	}
 }

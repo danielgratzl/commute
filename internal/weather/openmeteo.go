@@ -52,7 +52,8 @@ func (c *Client) FetchForecast(ctx context.Context, pts []Coord) ([]byte, error)
 	v.Set("latitude", la)
 	v.Set("longitude", lo)
 	v.Set("models", ForecastModel)
-	v.Set("minutely_15", "temperature_2m,apparent_temperature,precipitation,snowfall,weather_code")
+	v.Set("minutely_15", "temperature_2m,apparent_temperature,precipitation,snowfall,weather_code,wind_gusts_10m")
+	v.Set("daily", "sunrise,sunset")
 	v.Set("hourly", "precipitation_probability")
 	v.Set("timezone", "GMT")
 	v.Set("past_days", "1") // so "now" is always covered, whatever the server's day boundary
@@ -120,6 +121,9 @@ type Point struct {
 	Precip15 []float64 // mm per 15 min
 	Snow15   []float64 // cm per 15 min
 	Code     []float64
+	Gust     []float64 // km/h
+
+	Sunrise, Sunset []time.Time // per day
 
 	Hours   []time.Time // hourly steps
 	Pop     []float64   // % (deterministic)
@@ -136,7 +140,12 @@ type rawForecast struct {
 		Precip   []*float64 `json:"precipitation"`
 		Snowfall []*float64 `json:"snowfall"`
 		Code     []*float64 `json:"weather_code"`
+		Gust     []*float64 `json:"wind_gusts_10m"`
 	} `json:"minutely_15"`
+	Daily struct {
+		Sunrise []string `json:"sunrise"`
+		Sunset  []string `json:"sunset"`
+	} `json:"daily"`
 	Hourly struct {
 		Time []string   `json:"time"`
 		Pop  []*float64 `json:"precipitation_probability"`
@@ -173,6 +182,13 @@ func ParseForecast(body []byte) ([]Point, error) {
 		}
 		p.Temp, p.Feels = floatsNaN(r.M15.Temp), floatsNaN(r.M15.Feels)
 		p.Precip15, p.Snow15, p.Code = floats(r.M15.Precip), floats(r.M15.Snowfall), floats(r.M15.Code)
+		p.Gust = floats(r.M15.Gust)
+		if p.Sunrise, err = parseTimes(r.Daily.Sunrise); err != nil {
+			return nil, err
+		}
+		if p.Sunset, err = parseTimes(r.Daily.Sunset); err != nil {
+			return nil, err
+		}
 		if p.Hours, err = parseTimes(r.Hourly.Time); err != nil {
 			return nil, err
 		}

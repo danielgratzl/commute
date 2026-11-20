@@ -24,6 +24,7 @@
   --m-train: #1f5fd1;
   --m-tram: #0c968a;
   --m-other: #6b7280;
+  --m-bike: #d9480f;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.07);
   --r: 22px;
   color-scheme: light;
@@ -55,6 +56,7 @@
     --m-train: #5b8fff;
     --m-tram: #2cc6b2;
     --m-other: #8c95a3;
+    --m-bike: #ff8a4c;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }

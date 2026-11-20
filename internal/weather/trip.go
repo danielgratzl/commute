@@ -82,6 +82,31 @@ func (p *Point) rate(t time.Time) float64 {
 	return p.Precip15[k] * 4
 }
 
+// gust is the wind gust in km/h around t (0 when unknown).
+func (p *Point) gust(t time.Time) float64 {
+	k, ok := periodIndex(p.Q15, t)
+	if !ok || k >= len(p.Gust) {
+		return 0
+	}
+	return p.Gust[k]
+}
+
+// dark reports whether t is before sunrise or after sunset (false when unknown).
+func (p *Point) dark(t time.Time) bool {
+	t = t.UTC()
+	for i := range p.Sunrise {
+		if i >= len(p.Sunset) {
+			break
+		}
+		y, m, d := p.Sunrise[i].Date()
+		ty, tm, td := t.Date()
+		if y == ty && m == tm && d == td {
+			return t.Before(p.Sunrise[i]) || t.After(p.Sunset[i])
+		}
+	}
+	return false
+}
+
 func (p *Point) snow(t time.Time) bool {
 	k, ok := periodIndex(p.Q15, t)
 	if !ok {
@@ -158,21 +183,10 @@ func Assess(c transit.Connection, d *Data, origin, dest int) *transit.TripWeathe
 	if !po.covers(c.DoorDepart) || !pd.covers(c.DoorArrive) {
 		return nil
 	}
-	placeName := func(i int) string {
-		if i == origin {
-			return "origin"
-		}
-		return "destination"
-	}
-
 	w := &transit.TripWeather{Source: d.Source}
 	w.Origin = pointWeather(po, "origin", c.DoorDepart)
 	w.Dest = pointWeather(pd, "destination", c.DoorArrive)
 
-	type span struct {
-		iv  transit.OutdoorInterval
-		idx int // point index
-	}
 	var spans []span
 	for _, iv := range outdoorIntervals(c) {
 		lat, lon := iv.lat, iv.lon
@@ -182,25 +196,55 @@ func Assess(c transit.Connection, d *Data, origin, dest int) *transit.TripWeathe
 				idx = origin
 			}
 		} else {
-			idx = nearest(d.Coords, lat, lon)
+			idx = nearestOf(d.Coords, []int{origin, dest}, lat, lon)
 		}
-		iv.Place = placeName(idx)
+		iv.Place = placeName(idx, origin, dest)
 		spans = append(spans, span{iv.OutdoorInterval, idx})
 	}
+	summarise(w, d, spans)
+	w.Verdict, w.Headline, w.Detail = verdict(w)
+	return w
+}
 
-	nMembers := len(po.Members)
-	if len(pd.Members) != nMembers {
+type span struct {
+	iv  transit.OutdoorInterval
+	idx int // point index
+}
+
+func placeName(i, origin, dest int) string {
+	switch i {
+	case origin:
+		return "origin"
+	case dest:
+		return "destination"
+	}
+	return "midway"
+}
+
+// summarise fills chance, intensity, snow/ice, gusts, darkness and per-interval
+// values from the outdoor spans. A member counts as wet if it rains at any sample.
+func summarise(w *transit.TripWeather, d *Data, spans []span) {
+	nMembers := -1
+	for _, s := range spans {
+		n := len(d.Points[s.idx].Members)
+		if nMembers == -1 || n < nMembers {
+			nMembers = n
+		}
+	}
+	if nMembers < 0 {
 		nMembers = 0
 	}
 	memberWet := make([]bool, nMembers)
 	memberPeak := make([]float64, nMembers)
 	detPeak, popMax := 0.0, 0
 	snow := false
+	gust := 0.0
+	dark := false
 
 	for si := range spans {
 		s := &spans[si]
 		p := &d.Points[s.idx]
-		w.OutdoorMin += int(s.iv.End.Sub(s.iv.Start) / time.Minute)
+		w.OutdoorMin += int(s.iv.End.Sub(s.iv.Start).Round(time.Minute) / time.Minute)
 		samples := sampleTimes(s.iv.Start, s.iv.End)
 		ivWet := 0
 		var ivRates []float64
@@ -223,6 +267,8 @@ func Assess(c transit.Connection, d *Data, origin, dest int) *transit.TripWeathe
 			ivDet = math.Max(ivDet, p.rate(t))
 			ivPop = max(ivPop, p.chance(t))
 			snow = snow || p.snow(t)
+			gust = math.Max(gust, p.gust(t))
+			dark = dark || p.dark(t)
 		}
 		detPeak = math.Max(detPeak, ivDet)
 		popMax = max(popMax, ivPop)
@@ -257,9 +303,9 @@ func Assess(c transit.Connection, d *Data, origin, dest int) *transit.TripWeathe
 	w.Snow = snow || w.Origin.Snow || w.Dest.Snow
 	minTemp := math.Min(w.Origin.Temp, w.Dest.Temp)
 	w.Ice = minTemp <= iceTempC && w.Chance >= iceChance
+	w.GustKmh = math.Round(gust)
+	w.Dark = dark
 	w.Intensity = intensity(w.Chance, w.RateMMH)
-	w.Verdict, w.Headline, w.Detail = verdict(w)
-	return w
 }
 
 func pointWeather(p *Point, place string, t time.Time) transit.PointWeather {
@@ -330,10 +376,12 @@ func midpoint(aLat, aLon, bLat, bLon float64) (float64, float64) {
 	return (aLat + bLat) / 2, (aLon + bLon) / 2
 }
 
-func nearest(cs []Coord, lat, lon float64) int {
-	best, bestD := 0, math.Inf(1)
+// nearestOf returns the index (from idx) of the coordinate closest to lat/lon.
+func nearestOf(cs []Coord, idx []int, lat, lon float64) int {
+	best, bestD := idx[0], math.Inf(1)
 	k := math.Cos(lat * math.Pi / 180)
-	for i, c := range cs {
+	for _, i := range idx {
+		c := cs[i]
 		dx, dy := (c.Lon-lon)*k, c.Lat-lat
 		if d := dx*dx + dy*dy; d < bestD {
 			best, bestD = i, d
