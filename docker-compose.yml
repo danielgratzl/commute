@@ -1,7 +1,7 @@
 services:
   commute:
-    build: .                               # later: image: ghcr.io/<you>/commute:latest
-    image: commute:local
+    image: ghcr.io/danielgratzl/commute:latest   # built by GitHub Actions (amd64 + arm64)
+    # build: .                                   # or build locally instead
     container_name: commute
     restart: unless-stopped
     ports:

@@ -38,12 +38,17 @@ make dev      # API on :8080 + Vite dev server with hot reload on :5173
 
 ## Deploy on the NAS
 
+Every push to `main` runs the tests and publishes a multi-arch image (amd64 + arm64) to `ghcr.io/danielgratzl/commute` via GitHub Actions (`.github/workflows/ci.yml`). Tags: `latest`, the short commit SHA, and `X.Y.Z` / `X.Y` for version tags like `v1.2.0`.
+
+On the NAS, put `docker-compose.yml` and your `config.yaml` in one folder, then:
+
 ```sh
-# copy the repo (or later just docker-compose.yml) and your config.yaml to the NAS, then:
-docker compose up -d --build
+docker compose pull && docker compose up -d   # also the update command
 ```
 
-The image is about 17 MB and uses about 12 MB RAM. It builds for amd64 and arm64 (`docker buildx build --platform linux/amd64,linux/arm64 .`). The daily request counter and the cached bike routes live in the `commute-data` volume.
+Copy `config.yaml` first: if it is missing, Docker creates an empty folder with that name and the app will not start. If the package on ghcr.io is private, log in once with a token that has `read:packages`: `docker login ghcr.io -u danielgratzl`.
+
+The image is about 17 MB and uses about 12 MB RAM. The daily request counter and the cached bike routes live in the `commute-data` volume.
 
 ### HTTPS and access from the office (Tailscale)
 
@@ -76,4 +81,4 @@ testdata/                recorded search.ch and Open-Meteo responses for tests
 2. ~~Trip weather: Open-Meteo (MeteoSwiss ICON-CH) + ensemble, rain chance during the minutes outdoors~~
 3. Robustness: delay refresh via departure boards, fallback provider, tomorrow view polish
 4. ~~Road bike: cached BRouter route, "dry if you leave by" scan~~
-5. CI: GitHub Actions multi-arch image to GHCR
+5. ~~CI: GitHub Actions multi-arch image to GHCR~~
