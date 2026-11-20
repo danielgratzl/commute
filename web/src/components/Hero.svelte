@@ -37,7 +37,7 @@
 <article class="hero" class:go aria-live="polite">
   <div class="head">
     <div class="eyebrow">
-      <span>{pinned ? 'Selected connection' : live ? 'Next connection' : 'Suggested connection'}</span>
+      <span>{pinned ? 'Selected connection' : 'Next connection'}</span>
       <span class="chips">
         {#if pinned}<button class="chip plain" onclick={onunpin}>Show best</button>{/if}
         {#if c.status === 'at_risk'}
@@ -68,7 +68,7 @@
         {#if live && secs < 90 * 60}
           <span>out the door</span><b>{clock(c.door_depart)}</b>
         {:else}
-          <span>{plan.mode === 'planned' ? plan.label.split(',')[0] : 'in'}</span><b>{secs > 0 ? 'in ' + inWords(mins) : 'now'}</b>
+          <span>leave</span><b>{secs > 0 ? 'in ' + inWords(mins) : 'now'}</b>
         {/if}
         <span class="sub">{go ? 'walk to ' + firstStop : ''}</span>
       </div>

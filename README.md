@@ -8,15 +8,7 @@ A self-hosted phone app (PWA) that shows the next sensible public-transport conn
 
 ## How the live view decides what to show
 
-With the default schedule (arrive 09:00, leave 16:00):
-
-| Time | Shows |
-|---|---|
-| until 07:15 | today's trip to work, arriving by 09:00 |
-| 07:15–10:00 | trip to work, live departures |
-| 10:00–15:15 | trip home, planned around 16:00 ("Show departures now" switches to live) |
-| 15:15–20:00 | trip home, live departures |
-| after 20:00 | tomorrow's trip to work, arriving by 09:00 |
+Departures are always live, from now. Before 09:00 the app shows the trip to work, from 09:00 the trip home (`schedule.switch_to_home`). Tap the direction button to switch manually; "back to auto" returns to the time rule. Tue/Thu are labelled as commute days, but the app works the same every day.
 
 For each connection the app works out the minutes you are outside (walks and waits at stops) and the chance of rain during exactly those minutes, from the 11 members of the MeteoSwiss ICON-CH1 ensemble. Below 20% it says no umbrella, from 50% take an umbrella. It also shows temperature and feels-like at both ends.
 
@@ -24,9 +16,9 @@ For each connection the app works out the minutes you are outside (walks and wai
 
 The bike route comes from [BRouter](https://brouter.de) (profile `fastbike`, asphalt only) and is fetched once per direction, then kept in the data volume. Ride time is not BRouter's estimate: a physics model is calibrated to your `flat_speed_kmh`, slows you down on climbs (the way home climbs ~180 m), caps speed on residential streets, cycle paths and descents, and adds an average wait per traffic light. If your real rides differ, set `k_cal` (1.1 = 10% slower).
 
-The bike card shows door-to-door time, the difference to the suggested train, and the rain verdict for the whole ride (sampled along the route at home, halfway and at work): good to ride, pack rain gear, or take the train. It scans ten departures 10 min apart and says when you would stay dry, and warns about darkness, gusts and cold.
+The bike card shows door-to-door time, the difference to the suggested train, and the rain verdict for the whole ride (sampled along the route at home, halfway and at work): good to ride, pack rain gear, or take the train. It scans ten departures 10 min apart, starting now, and says when you would stay dry, and warns about darkness, gusts and cold.
 
-The highlighted connection is the earliest door-to-door arrival you can still catch. Cancelled connections are never highlighted; connections with a transfer at risk count 5 minutes later. Tue/Thu are labelled as commute days, but the app works the same every day. Tap the direction button to switch manually.
+The highlighted connection is the earliest door-to-door arrival you can still catch. Cancelled connections are never highlighted; connections with a transfer at risk count 5 minutes later.
 
 ## Configuration
 

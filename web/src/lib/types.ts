@@ -102,9 +102,7 @@ export interface BikeView {
 
 export interface Plan {
   direction: Direction
-  mode: 'live' | 'planned'
-  at?: string
-  arrive_by?: string
+  mode: 'live'
   label: string
   reason: string
   auto: boolean

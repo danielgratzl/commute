@@ -59,11 +59,6 @@
     pinnedId = null
     load()
   }
-  function showNow() {
-    override = { ...override, now: true }
-    pinnedId = null
-    load()
-  }
   function select(id: string) {
     pinnedId = id === data?.hero_id ? null : id
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -118,14 +113,8 @@
   </header>
 
   <main>
-    {#if data && (data.plan.mode === 'planned' || data.plan.commute_day)}
-      <div class="context">
-        {#if data.plan.mode === 'planned'}
-          <span class="chip plain">{data.plan.label}</span>
-          <button class="link" onclick={showNow}>Show departures now</button>
-        {/if}
-        {#if data.plan.commute_day}<span class="chip ok">Commute day</span>{/if}
-      </div>
+    {#if data?.plan.commute_day}
+      <div class="context"><span class="chip ok">Commute day</span></div>
     {/if}
 
     {#if data && data.weather.status === 'unavailable'}
@@ -158,7 +147,7 @@
     {/if}
 
     {#if later.length}
-      <div class="sec-h"><h2>{live ? 'Later' : 'Other options'}</h2><span>door to door</span></div>
+      <div class="sec-h"><h2>Later</h2><span>door to door</span></div>
       <div class="card list">
         {#each later as c (c.id)}
           <Row {c} {now} {live} selected={c.id === pinnedId} onselect={() => select(c.id)} />

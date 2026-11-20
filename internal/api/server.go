@@ -70,7 +70,7 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 	now := s.Now().In(s.Cfg.Loc)
-	ov := engine.Override{Now: r.URL.Query().Get("when") == "now"}
+	var ov engine.Override
 	switch d := engine.Direction(r.URL.Query().Get("dir")); d {
 	case engine.ToWork, engine.ToHome:
 		ov.Direction = d
@@ -81,14 +81,10 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 	if plan.Direction == engine.ToHome {
 		from, to = to, from
 	}
-	q := transit.Query{FromLat: from.Lat, FromLon: from.Lon, ToLat: to.Lat, ToLon: to.Lon, At: plan.At, Num: s.Cfg.Transit.Num}
+	q := transit.Query{FromLat: from.Lat, FromLon: from.Lon, ToLat: to.Lat, ToLon: to.Lon, Num: s.Cfg.Transit.Num}
 
 	key := string(plan.Direction) + "|live"
 	ttl := time.Duration(s.Cfg.Transit.LiveTTLSeconds) * time.Second
-	if plan.Mode == engine.Planned {
-		key = string(plan.Direction) + "|" + plan.At.Format(time.RFC3339)
-		ttl = time.Duration(s.Cfg.Transit.PlannedTTLSeconds) * time.Second
-	}
 
 	res, err := s.Cache.Get(key, ttl, now, func() ([]byte, error) {
 		if err := s.Budget.Take(now); err != nil {
@@ -116,7 +112,7 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error(), "plan": plan})
 		return
 	}
-	hero, list := engine.Pick(now, plan, cs)
+	hero, list := engine.Pick(now, cs)
 
 	type routeResult struct {
 		r   *bike.Route
@@ -151,8 +147,8 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 		s.Log.Warn("bike route unavailable", "err", rr.err)
 		bikeErr = "Bike route unavailable right now"
 	} else if rr.r != nil {
-		base, best := s.bikeBase(now, plan, rr.r)
-		bikeView = bike.Build(rr.r, s.Cfg.Bike, base, best, wx, origin, dest)
+		// The bike section scans departures from the next full minute.
+		bikeView = bike.Build(rr.r, s.Cfg.Bike, now.Truncate(time.Minute).Add(time.Minute), 0, wx, origin, dest)
 	}
 
 	used, limit := s.Budget.Snapshot(now)
@@ -175,22 +171,6 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, resp)
-}
-
-// bikeBase is the suggested bike departure and its position in the 10-step scan:
-// live scans forward from now; arrive-by also looks at earlier departures;
-// planned trips home look around the usual departure.
-func (s *Server) bikeBase(now time.Time, plan engine.Plan, r *bike.Route) (time.Time, int) {
-	switch {
-	case plan.Mode == engine.Live:
-		return now.Truncate(time.Minute).Add(time.Minute), 0
-	case !plan.ArriveBy.IsZero():
-		c := s.Cfg.Bike
-		door := time.Duration(c.HandlingOutMin+c.HandlingInMin)*time.Minute + time.Duration(r.RideS*c.KCal)*time.Second
-		return plan.ArriveBy.Add(-door).Truncate(time.Minute), 6
-	default:
-		return plan.At.Add(15 * time.Minute), 3
-	}
 }
 
 // weatherData returns the parsed forecast for home and work. Forecast and ensemble are

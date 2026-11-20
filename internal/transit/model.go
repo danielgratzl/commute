@@ -111,6 +111,6 @@ type Connection struct {
 type Query struct {
 	FromLat, FromLon float64
 	ToLat, ToLon     float64
-	At               time.Time // zero = now
+	At               time.Time // zero = now (the app always queries now)
 	Num              int
 }

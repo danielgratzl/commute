@@ -24,21 +24,16 @@ type WalkOverride struct {
 }
 
 type Schedule struct {
-	ArriveWork         string   `yaml:"arrive_work"`           // usual arrival at work, e.g. "09:00"
-	LeaveWork          string   `yaml:"leave_work"`            // usual departure from work, e.g. "16:00"
-	SwitchHomeAfter    int      `yaml:"switch_home_after_min"` // show trip home from arrive_work + N min
-	EveningSwitch      string   `yaml:"evening_switch"`        // after this, show tomorrow's trip to work
-	LiveBeforeLeaveMin int      `yaml:"live_before_leave_min"` // before leave_work - N min, show planned trips around leave_work
-	CommuteDays        []string `yaml:"commute_days"`          // label only; the app works every day
+	SwitchToHome string   `yaml:"switch_to_home"` // before: trip to work; from then on: trip home
+	CommuteDays  []string `yaml:"commute_days"`   // label only; the app works every day
 }
 
 type Transit struct {
-	Provider          string                  `yaml:"provider"`
-	Num               int                     `yaml:"num"`
-	DailyRouteBudget  int                     `yaml:"daily_route_budget"`
-	LiveTTLSeconds    int                     `yaml:"live_ttl_seconds"`
-	PlannedTTLSeconds int                     `yaml:"planned_ttl_seconds"`
-	WalkOverrides     map[string]WalkOverride `yaml:"walk_overrides"` // keyed by stop id
+	Provider         string                  `yaml:"provider"`
+	Num              int                     `yaml:"num"`
+	DailyRouteBudget int                     `yaml:"daily_route_budget"`
+	LiveTTLSeconds   int                     `yaml:"live_ttl_seconds"`
+	WalkOverrides    map[string]WalkOverride `yaml:"walk_overrides"` // keyed by stop id
 }
 
 // Bike describes the rider. Ride time comes from a physics model calibrated to FlatKmh.
@@ -79,14 +74,10 @@ func Default() Config {
 	c.BufferMin = 2
 	c.Places.Home = Place{Label: "Home", Lat: 47.3780, Lon: 8.5402}
 	c.Places.Work = Place{Label: "Work", Lat: 47.4083, Lon: 8.5067}
-	c.Schedule = Schedule{
-		ArriveWork: "09:00", LeaveWork: "16:00", SwitchHomeAfter: 60,
-		EveningSwitch: "20:00", LiveBeforeLeaveMin: 45,
-		CommuteDays: []string{"tue", "thu"},
-	}
+	c.Schedule = Schedule{SwitchToHome: "09:00", CommuteDays: []string{"tue", "thu"}}
 	c.Bike = Bike{Enabled: true, Label: "Road bike", Profile: "fastbike", FlatKmh: 30, MaxKmh: 45, MassKg: 85,
 		HandlingOutMin: 3, HandlingInMin: 3, SignalPenaltyS: 10, KCal: 1.0}
-	c.Transit = Transit{Provider: "searchch", Num: 6, DailyRouteBudget: 800, LiveTTLSeconds: 120, PlannedTTLSeconds: 900}
+	c.Transit = Transit{Provider: "searchch", Num: 6, DailyRouteBudget: 800, LiveTTLSeconds: 120}
 	return c
 }
 
@@ -121,10 +112,8 @@ func (c *Config) validate() error {
 		return fmt.Errorf("timezone %q: %w", c.Timezone, err)
 	}
 	c.Loc = loc
-	for name, v := range map[string]string{"arrive_work": c.Schedule.ArriveWork, "leave_work": c.Schedule.LeaveWork, "evening_switch": c.Schedule.EveningSwitch} {
-		if _, err := ParseClock(v); err != nil {
-			return fmt.Errorf("schedule.%s: %w", name, err)
-		}
+	if _, err := ParseClock(c.Schedule.SwitchToHome); err != nil {
+		return fmt.Errorf("schedule.switch_to_home: %w", err)
 	}
 	if c.Bike.FlatKmh <= 5 || c.Bike.FlatKmh > 60 {
 		return fmt.Errorf("bike.flat_speed_kmh: want 5..60, got %v", c.Bike.FlatKmh)
